@@ -67,14 +67,13 @@ def load_data():
 
 
 @st.cache_data
-def get_vendor_analysis(_purchases, _sales, categories, excluded_vendors_tuple):
+def get_vendor_analysis(_purchases, _sales, categories):
     """Get vendor and product analysis.
     
     Args:
-        _purchases: List of purchases (already filtered by excluded vendors)
+        _purchases: List of purchases
         _sales: List of sales
         categories: Categories to analyze
-        excluded_vendors_tuple: Tuple of excluded vendor names (for cache invalidation)
     """
     analyzer = AnalysisService(_purchases, _sales)
     product_analysis = analyzer.get_product_wise_purchase_analysis(categories)
@@ -194,36 +193,6 @@ def main():
     
     st.markdown("---")
     
-    # Vendor exclusion filter (FIRST - before any calculations)
-    st.subheader("🚫 Exclude Vendors from Analysis")
-    st.markdown("*Exclude internal/related company vendors to get realistic rate comparisons*")
-    
-    # Get all unique vendor names from FG/TR purchases
-    all_vendors = sorted(set(p.vendor_name for p in purchases if p.vendor_name and p.is_tradeable))
-    
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        excluded_vendors = st.multiselect(
-            "Select vendors to exclude:",
-            options=all_vendors,
-            default=[],
-            help="These vendors will be completely excluded from all calculations and reports"
-        )
-    
-    with col2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if excluded_vendors:
-            st.metric("Vendors Excluded", len(excluded_vendors))
-    
-    # Filter purchases BEFORE any analysis
-    if excluded_vendors:
-        original_count = len(purchases)
-        purchases = [p for p in purchases if p.vendor_name not in excluded_vendors]
-        filtered_count = len(purchases)
-        st.info(f"📊 Filtered out {original_count - filtered_count} purchase records from {len(excluded_vendors)} vendor(s)")
-    
-    st.markdown("---")
-    
     # Sidebar filters for product/vendor selection
     st.sidebar.title("🎯 Display Filters")
     st.sidebar.markdown("---")
@@ -245,9 +214,7 @@ def main():
     
     # Get analysis
     with st.spinner("Analyzing vendor rates..."):
-        # Convert excluded_vendors list to tuple for cache key
-        excluded_vendors_tuple = tuple(sorted(excluded_vendors)) if excluded_vendors else ()
-        product_analysis, vendor_analysis = get_vendor_analysis(purchases, sales, categories, excluded_vendors_tuple)
+        product_analysis, vendor_analysis = get_vendor_analysis(purchases, sales, categories)
     
     products = product_analysis['products']
     vendors = vendor_analysis['vendors']
