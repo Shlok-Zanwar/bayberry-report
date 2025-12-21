@@ -100,6 +100,7 @@ class DataTransformerService:
                     manager_name=str(row['MGNAME']) if pd.notna(row['MGNAME']) else None,
                     country=str(row['COUNTRY']) if pd.notna(row['COUNTRY']) else None,
                     city=str(row['CITY']) if pd.notna(row['CITY']) else None,
+                    segment=str(row['Final line wise segment ']).strip() if pd.notna(row['Final line wise segment ']) else None,
                 )
                 sales.append(sale)
             except Exception as e:

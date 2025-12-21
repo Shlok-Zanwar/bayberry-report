@@ -78,6 +78,7 @@ def format_batch_profits_dataframe(profits_df):
     COLUMN_ORDER = [
         'batch_ref_no',
         'item_name',
+        'segment',  # Added after item name
         'purchase_qty',
         'purchase_rate',
         'purchase_cost',
@@ -92,6 +93,9 @@ def format_batch_profits_dataframe(profits_df):
         'total_cost_due_to_discount',
         'profit',
         'profit_margin',
+        'profit_share_ratio',  # Added after profit columns
+        'sz_profit_share',  # SZ profit share
+        'gz_profit_share',  # GZ profit share
         'gross_revenue',
         'net_revenue',
         'status',
@@ -105,6 +109,7 @@ def format_batch_profits_dataframe(profits_df):
         'batch_ref_no': 'Batch No.',
         'item_code': 'Item Code',
         'item_name': 'Item Name',
+        'segment': 'Segment',
         'category': 'Category',
         'vendor_name': 'Vendor',
         'purchase_date': 'Purchase Date',
@@ -122,6 +127,9 @@ def format_batch_profits_dataframe(profits_df):
         'total_cost_due_to_discount': 'Cost (Discount)',
         'profit': 'Profit',
         'profit_margin': 'Margin %',
+        'profit_share_ratio': 'Share (SZ/GZ)',
+        'sz_profit_share': 'SZ Profit Share',
+        'gz_profit_share': 'GZ Profit Share',
         'gross_revenue': 'Gross Revenue (w/ GST)',
         'net_revenue': 'Net Revenue (Legacy)',
         'status': 'Status'
@@ -134,7 +142,8 @@ def format_batch_profits_dataframe(profits_df):
         df[col] = df[col].apply(lambda x: f"₹{x:,.2f}" if pd.notna(x) else "")
     # Format other currency columns with no decimal places
     currency_cols = ['purchase_cost', 'gross_revenue', 'net_revenue', 'revenue_from_sales',
-                     'total_cogs', 'total_cost_due_to_free', 'total_cost_due_to_discount', 'profit']
+                     'total_cogs', 'total_cost_due_to_free', 'total_cost_due_to_discount', 
+                     'profit', 'sz_profit_share', 'gz_profit_share']
     for col in currency_cols:
         df[col] = df[col].apply(lambda x: f"₹{x:,.0f}" if pd.notna(x) else "")
     # Format percentage
@@ -159,6 +168,7 @@ def main():
     # Sidebar
     st.sidebar.title("⚙️ Configuration")
     st.sidebar.markdown("---")
+    
     # Category filter
     st.sidebar.subheader("Categories to Analyze")
     include_fg = st.sidebar.checkbox("FG (Finished Goods)", value=True)
@@ -171,11 +181,41 @@ def main():
     if not categories:
         st.error("⚠️ Please select at least one category to analyze!")
         return
+    
+    # Segment filter (in main page)
+    st.subheader("🎯 Segments to Include")
+    all_segments = ['PCD', 'THIRD PARTY', 'Internal', 'EXPORT']
+    selected_segments = st.multiselect(
+        "Select segments to analyze",
+        options=all_segments,
+        default=all_segments,
+        help="Filter by sales segment type",
+        key="segment_filter"
+    )
+    
+    if not selected_segments:
+        st.error("⚠️ Please select at least one segment!")
+        return
+    
+    st.markdown("---")
+    
     # Calculate profits
     with st.spinner("Calculating profits..."):
         batch_profits, summary_by_category, overall_summary = calculate_profits(
             purchases, sales, categories
         )
+    
+    # Filter by selected segments
+    batch_profits = [
+        bp for bp in batch_profits 
+        if bp.segment is None or bp.segment in selected_segments or bp.segment == 'Unknown'
+    ]
+    
+    # Recalculate summary stats after segment filtering
+    calculator = ProfitCalculatorService(purchases, sales)
+    overall_summary = calculator.get_summary_stats(batch_profits)
+    summary_by_category = calculator.get_summary_by_category(batch_profits)
+    
     # Get analysis data
     with st.spinner("Preparing additional reports..."):
         analyzer, fg_tr_orphans, other_orphans, charges_report = get_analysis_data(
@@ -213,6 +253,25 @@ def main():
             delta_color=profit_color,
             help="Total profit and average profit margin"
         )
+    
+    # Partner Profit Shares
+    col1, col2, col3, col4 = st.columns(4)
+    total_sz_share = sum(bp.sz_profit_share for bp in batch_profits)
+    total_gz_share = sum(bp.gz_profit_share for bp in batch_profits)
+    
+    with col1:
+        st.metric(
+            "SZ Profit Share",
+            f"₹{total_sz_share:,.0f}",
+            help="Total profit share for partner SZ"
+        )
+    with col2:
+        st.metric(
+            "GZ Profit Share",
+            f"₹{total_gz_share:,.0f}",
+            help="Total profit share for partner GZ"
+        )
+    
     # Profit Distribution
     col1, col2 = st.columns(2)
     with col1:
@@ -341,7 +400,8 @@ def main():
                 sales_display = sales_detail_df.copy()
                 # Format currency columns
                 currency_cols = ['out_rate', 'gross_value', 'discount_value', 'revenue_from_sale',
-                                'cost_of_goods_sold', 'cost_due_to_free', 'cost_due_to_discount', 'final_profit']
+                                'cost_of_goods_sold', 'cost_due_to_free', 'cost_due_to_discount', 
+                                'final_profit', 'sz_profit_share', 'gz_profit_share']
                 for col in currency_cols:
                     if col in sales_display.columns:
                         sales_display[col] = sales_display[col].apply(lambda x: f"₹{x:,.2f}" if pd.notna(x) else "")
@@ -356,13 +416,17 @@ def main():
                     'free_qty': 'Free Qty',
                     'out_qty': 'Out Qty',
                     'out_rate': 'Sale Rate',
+                    'segment': 'Segment',
                     'gross_value': 'Gross Value (w/ GST)',
                     'discount_value': 'Discount',
                     'revenue_from_sale': 'Revenue from Sale',
                     'cost_of_goods_sold': 'COGS',
                     'cost_due_to_free': 'Cost (Free)',
                     'cost_due_to_discount': 'Cost (Discount)',
-                    'final_profit': 'Final Profit'
+                    'final_profit': 'Final Profit',
+                    'profit_share_ratio': 'Share (SZ/GZ)',
+                    'sz_profit_share': 'SZ Profit Share',
+                    'gz_profit_share': 'GZ Profit Share'
                 }
                 sales_display = sales_display.rename(columns=column_renames)
                 st.dataframe(

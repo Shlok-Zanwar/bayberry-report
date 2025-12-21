@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict
 from .purchase import Purchase
 from .sale import Sale
+from ..config import get_profit_share
 
 
 @dataclass
@@ -18,14 +19,31 @@ class SaleDetail:
     cost_due_to_discount: float = 0.0
     final_profit: float = 0.0
     
+    # Segment and Profit Sharing (per sale)
+    segment: Optional[str] = None
+    profit_share_ratio: str = "50/50"
+    sz_profit_share: float = 0.0
+    gz_profit_share: float = 0.0
+    
     def calculate(self):
-        """Calculate all profit metrics."""
+        """Calculate all profit metrics including profit shares."""
         metrics = self.sale.calculate_profit_metrics(self.purchase_rate)
         self.revenue_from_sale = metrics['revenue_from_sale']
         self.cost_of_goods_sold = metrics['cost_of_goods_sold']
         self.cost_due_to_free = metrics['cost_due_to_free']
         self.cost_due_to_discount = metrics['cost_due_to_discount']
         self.final_profit = metrics['final_profit']
+        
+        # Get segment from sale
+        self.segment = self.sale.segment
+        
+        # Calculate profit shares based on this sale's segment
+        share_config = get_profit_share(self.segment)
+        sz_pct = share_config['SZ']
+        gz_pct = share_config['GZ']
+        self.profit_share_ratio = f"{sz_pct}/{gz_pct}"
+        self.sz_profit_share = self.final_profit * (sz_pct / 100)
+        self.gz_profit_share = self.final_profit * (gz_pct / 100)
     
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -34,6 +52,7 @@ class SaleDetail:
             'transaction_no': self.sale.transaction_no,
             'transaction_date': self.sale.transaction_date.strftime('%Y-%m-%d') if self.sale.transaction_date else None,
             'customer_name': self.sale.customer_name,
+            'segment': self.segment,
             'sale_qty': self.sale.sale_qty,
             'free_qty': self.sale.free_qty,
             'out_qty': self.sale.out_qty,
@@ -45,6 +64,9 @@ class SaleDetail:
             'cost_due_to_free': round(self.cost_due_to_free, 2),
             'cost_due_to_discount': round(self.cost_due_to_discount, 2),
             'final_profit': round(self.final_profit, 2),
+            'profit_share_ratio': self.profit_share_ratio,
+            'sz_profit_share': round(self.sz_profit_share, 2),
+            'gz_profit_share': round(self.gz_profit_share, 2),
         }
 
 
@@ -92,6 +114,12 @@ class BatchProfit:
     # Final profit
     profit: float = 0.0
     profit_margin: float = 0.0
+    
+    # Segment and Profit Sharing
+    segment: Optional[str] = None  # Dominant segment from sales
+    profit_share_ratio: str = "50/50"  # SZ/GZ ratio
+    sz_profit_share: float = 0.0
+    gz_profit_share: float = 0.0
     
     # Status
     has_purchase: bool = False
@@ -147,6 +175,33 @@ class BatchProfit:
         # Note: COGS already includes cost of free items, so we don't subtract it separately
         self.profit = self.revenue_from_sales - self.total_cogs - self.total_cost_due_to_discount
         
+        # Determine dominant segment from sales (for display only)
+        if self.sales:
+            # Count sales by segment
+            segment_counts = {}
+            for sale in self.sales:
+                seg = sale.segment if sale.segment else 'Unknown'
+                segment_counts[seg] = segment_counts.get(seg, 0) + 1
+            # Get most common segment
+            self.segment = max(segment_counts, key=segment_counts.get) if segment_counts else None
+        
+        # Sum profit shares from individual sales (calculated per sale based on each sale's segment)
+        if self.sale_details:
+            self.sz_profit_share = sum(sd.sz_profit_share for sd in self.sale_details)
+            self.gz_profit_share = sum(sd.gz_profit_share for sd in self.sale_details)
+            # Calculate average ratio for display (weighted by profit)
+            if self.profit != 0:
+                sz_pct = (self.sz_profit_share / self.profit * 100) if self.profit != 0 else 50
+                gz_pct = (self.gz_profit_share / self.profit * 100) if self.profit != 0 else 50
+                self.profit_share_ratio = f"{sz_pct:.0f}/{gz_pct:.0f}"
+            else:
+                self.profit_share_ratio = "0/0"
+        else:
+            # No sales, use default
+            self.sz_profit_share = 0.0
+            self.gz_profit_share = 0.0
+            self.profit_share_ratio = "0/0"
+        
         # Profit margin based on tax-exclusive revenue
         if self.revenue_from_sales > 0:
             self.profit_margin = (self.profit / self.revenue_from_sales) * 100
@@ -178,6 +233,7 @@ class BatchProfit:
             'batch_ref_no': self.batch_ref_no,
             'item_code': self.item_code,
             'item_name': self.item_name,
+            'segment': self.segment,
             'category': self.category,
             'vendor_name': self.vendor_name,
             'purchase_date': self.purchase_date,
@@ -198,6 +254,9 @@ class BatchProfit:
             'total_cost_due_to_discount': round(self.total_cost_due_to_discount, 2),
             'profit': round(self.profit, 2),
             'profit_margin': round(self.profit_margin, 2),
+            'profit_share_ratio': self.profit_share_ratio,
+            'sz_profit_share': round(self.sz_profit_share, 2),
+            'gz_profit_share': round(self.gz_profit_share, 2),
             'status': self.status,
             'num_sales': len(self.sale_details),
         }

@@ -79,6 +79,7 @@ class AnalysisService:
                 'batch_no': sale.batch_no,
                 'item_code': sale.item_code,
                 'item_name': sale.item_name,
+                'segment': sale.segment,
                 'category': sale.category,
                 'bill_no': sale.bill_no,
                 'customer_name': sale.customer_name,

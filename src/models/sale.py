@@ -51,6 +51,7 @@ class Sale:
     manager_name: Optional[str]
     country: Optional[str]
     city: Optional[str]
+    segment: Optional[str] = None  # Final line wise segment: PCD, THIRD PARTY, Internal, EXPORT
     
     def __post_init__(self):
         """Validate and process data after initialization."""
@@ -151,6 +152,7 @@ class Sale:
             'country': self.country,
             'city': self.city,
             'category': self.category,
+            'segment': self.segment,
             'total_qty': self.total_qty,
             'revenue': self.revenue,
             'free_qty_loss': self.free_qty_loss,
