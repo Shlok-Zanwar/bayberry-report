@@ -51,16 +51,21 @@ def load_data():
     transformer = DataTransformerService()
     purchases = transformer.transform_purchases(purchases_df)
     sales = transformer.transform_sales(sales_df)
-    return purchases, sales, reader.get_summary()
-
-@st.cache_data
-def calculate_profits(_purchases, _sales, categories):
-    """Calculate batch profits with caching."""
-    calculator = ProfitCalculatorService(_purchases, _sales)
-    batch_profits = calculator.calculate_batch_profits(include_categories=categories)
-    summary_by_category = calculator.get_summary_by_category(batch_profits)
-    overall_summary = calculator.get_summary_stats(batch_profits)
-    return batch_profits, summary_by_category, overall_summary
+    
+    # Get date range for filters
+    purchase_dates = [p.purchase_date for p in purchases if p.purchase_date]
+    sale_dates = [s.transaction_date for s in sales if s.transaction_date]
+    
+    if purchase_dates or sale_dates:
+        all_dates = purchase_dates + sale_dates
+        min_date = min(all_dates).date()
+        max_date = max(all_dates).date()
+    else:
+        from datetime import datetime
+        min_date = datetime(2020, 1, 1).date()
+        max_date = datetime.now().date()
+    
+    return purchases, sales, reader.get_summary(), min_date, max_date
 
 @st.cache_data
 def get_analysis_data(_purchases, _sales):
@@ -164,7 +169,8 @@ def main():
     st.markdown("---")
     # Load data
     with st.spinner("Loading data..."):
-        purchases, sales, data_summary = load_data()
+        purchases, sales, data_summary, min_date, max_date = load_data()
+    
     # Sidebar
     st.sidebar.title("⚙️ Configuration")
     st.sidebar.markdown("---")
@@ -199,11 +205,53 @@ def main():
     
     st.markdown("---")
     
-    # Calculate profits
-    with st.spinner("Calculating profits..."):
-        batch_profits, summary_by_category, overall_summary = calculate_profits(
-            purchases, sales, categories
+    # Date Range Filter
+    st.subheader("📅 Date Range Filter")
+    st.markdown("*Filter purchases by purchase date and sales by sale date*")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(
+            "Start Date",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+            help="Filter data from this date onwards",
+            key="start_date_filter"
         )
+    with col2:
+        end_date = st.date_input(
+            "End Date",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+            help="Filter data up to this date",
+            key="end_date_filter"
+        )
+    
+    st.markdown("---")
+    
+    # Apply date filters to show filtered counts
+    filtered_purchases = [
+        p for p in purchases
+        if p.purchase_date and start_date <= p.purchase_date.date() <= end_date
+    ]
+    
+    filtered_sales = [
+        s for s in sales
+        if s.transaction_date and start_date <= s.transaction_date.date() <= end_date
+    ]
+    
+    st.info(f"📊 Filtered: **{len(filtered_purchases):,}** purchases and **{len(filtered_sales):,}** sales (from {start_date} to {end_date})")
+    
+    st.markdown("---")
+    
+    # Calculate profits with filtered data
+    with st.spinner("Calculating profits..."):
+        calculator = ProfitCalculatorService(filtered_purchases, filtered_sales)
+        batch_profits = calculator.calculate_batch_profits(include_categories=categories)
+        summary_by_category = calculator.get_summary_by_category(batch_profits)
+        overall_summary = calculator.get_summary_stats(batch_profits)
     
     # Filter by selected segments
     batch_profits = [
@@ -212,7 +260,7 @@ def main():
     ]
     
     # Recalculate summary stats after segment filtering
-    calculator = ProfitCalculatorService(purchases, sales)
+    calculator = ProfitCalculatorService(filtered_purchases, filtered_sales)
     overall_summary = calculator.get_summary_stats(batch_profits)
     summary_by_category = calculator.get_summary_by_category(batch_profits)
     

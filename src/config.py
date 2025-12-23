@@ -14,8 +14,8 @@
 
 PROFIT_SHARE_CONFIG = {
     'PCD': {
-        'SZ': 66,  # SZ gets 66%
-        'GZ': 34,  # GZ gets 34%
+        'SZ': 67,  # SZ gets 66%
+        'GZ': 33,  # GZ gets 34%
     },
     'THIRD PARTY': {
         'SZ': 97,  # SZ gets 97%

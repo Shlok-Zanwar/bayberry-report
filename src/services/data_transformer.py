@@ -45,6 +45,7 @@ class DataTransformerService:
                     cgst=float(row['CGST']) if pd.notna(row['CGST']) else 0.0,
                     sgst=float(row['SGST']) if pd.notna(row['SGST']) else 0.0,
                     transaction_date=row['TXDATE'] if pd.notna(row['TXDATE']) else None,
+                    purchase_date=row['PODT'] if pd.notna(row['PODT']) else None,
                     manufacture_date=str(row['MNFMMYY']) if pd.notna(row['MNFMMYY']) else None,
                     expiry_date=row['EXPMMYY'] if pd.notna(row['EXPMMYY']) else None,
                     uom_code=str(row['UOMCD']) if pd.notna(row['UOMCD']) else '',

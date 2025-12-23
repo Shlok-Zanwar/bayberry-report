@@ -133,7 +133,7 @@ class BatchProfit:
             self.purchase_qty = self.purchase.in_qty
             self.purchase_rate = self.purchase.in_rate
             self.purchase_cost = self.purchase.total_cost
-            self.purchase_date = self.purchase.transaction_date.strftime('%Y-%m-%d') if self.purchase.transaction_date else None
+            self.purchase_date = self.purchase.purchase_date.strftime('%Y-%m-%d') if self.purchase.purchase_date else None
             self.vendor_name = self.purchase.vendor_name
         
         # Sales metrics (aggregate from all sales)

@@ -42,6 +42,7 @@ class Purchase:
     
     # Dates
     transaction_date: datetime
+    purchase_date: Optional[datetime]  # PODT column
     manufacture_date: Optional[str]
     expiry_date: Optional[datetime]
     
@@ -98,6 +99,7 @@ class Purchase:
             'cgst': self.cgst,
             'sgst': self.sgst,
             'transaction_date': self.transaction_date.isoformat() if self.transaction_date else None,
+            'purchase_date': self.purchase_date.isoformat() if self.purchase_date else None,
             'manufacture_date': self.manufacture_date,
             'expiry_date': self.expiry_date.isoformat() if self.expiry_date else None,
             'uom_code': self.uom_code,
