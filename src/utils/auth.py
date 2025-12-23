@@ -13,10 +13,11 @@ def require_password():
 
     if not st.session_state.authenticated:
         st.markdown("### 🔒 Bayberry Data Analytics - Login Required")
-        password = st.text_input("Enter password", type="password")
+        password = st.text_input("Enter password", type="password", key="password_input")
         if st.button("Login"):
             if password == st.secrets["APP_PASSWORD"]:
                 st.session_state.authenticated = True
+                st.success("✅ Login successful! Loading dashboard...")
                 st.rerun()
             else:
                 st.error("❌ Incorrect password")

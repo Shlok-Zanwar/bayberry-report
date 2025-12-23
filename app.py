@@ -40,7 +40,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
-    st.markdown('<div class="main-header">📊 Bayberry Data Analytics Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">📊 Bayberry Data Analytics</div>', unsafe_allow_html=True)
     st.markdown("""
     Welcome to the Bayberry Data Analytics platform!
     
