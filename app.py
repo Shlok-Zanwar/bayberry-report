@@ -1,6 +1,7 @@
 
 """Main landing page for Bayberry Data Analytics."""
 import streamlit as st
+from src.utils.auth import require_password
 
 # Page configuration
 st.set_page_config(
@@ -9,6 +10,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ========================================
+# PASSWORD PROTECTION - Must be first!
+# ========================================
+require_password()
+
+# ========================================
+# APP CONTENT (Only visible after authentication)
+# ========================================
 
 # Custom CSS
 st.markdown("""

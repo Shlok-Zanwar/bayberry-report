@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
+from src.utils.auth import require_password
 from src.services.excel_reader import ExcelReaderService
 from src.services.data_transformer import DataTransformerService
 from src.services.analysis import AnalysisService
@@ -14,6 +15,11 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide",
 )
+
+# ========================================
+# PASSWORD PROTECTION - Must be first!
+# ========================================
+require_password()
 
 # Custom CSS
 st.markdown("""

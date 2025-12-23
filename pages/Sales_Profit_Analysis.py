@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 
+from src.utils.auth import require_password
 from src.services.excel_reader import ExcelReaderService
 from src.services.data_transformer import DataTransformerService
 from src.services.profit_calculator import ProfitCalculatorService
@@ -17,6 +18,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ========================================
+# PASSWORD PROTECTION - Must be first!
+# ========================================
+require_password()
 
 # Add navigation hint
 st.sidebar.success("👈 Use the sidebar to navigate")

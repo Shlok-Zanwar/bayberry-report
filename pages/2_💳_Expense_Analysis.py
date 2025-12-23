@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime
 
+from src.utils.auth import require_password
 from src.services.expense_reader import ExpenseReaderService
 from src.services.expense_analysis import ExpenseAnalysisService
 
@@ -15,6 +16,11 @@ st.set_page_config(
     page_icon="💳",
     layout="wide",
 )
+
+# ========================================
+# PASSWORD PROTECTION - Must be first!
+# ========================================
+require_password()
 
 # Custom CSS
 st.markdown("""
