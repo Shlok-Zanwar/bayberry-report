@@ -24,6 +24,11 @@ st.set_page_config(
 # ========================================
 require_password()
 
+# Check permissions
+if not st.session_state.user.can_access_page("Sales Profit Analysis"):
+    st.error("🚫 You do not have permission to access this page.")
+    st.stop()
+
 # Add navigation hint
 st.sidebar.success("👈 Use the sidebar to navigate")
 
@@ -196,7 +201,7 @@ def main():
     
     # Segment filter (in main page)
     st.subheader("🎯 Segments to Include")
-    all_segments = ['PCD', 'THIRD PARTY', 'Internal', 'EXPORT']
+    all_segments = st.session_state.user.get_allowed_segments()
     selected_segments = st.multiselect(
         "Select segments to analyze",
         options=all_segments,

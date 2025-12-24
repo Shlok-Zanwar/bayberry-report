@@ -21,6 +21,11 @@ st.set_page_config(
 # ========================================
 require_password()
 
+# Check permissions
+if not st.session_state.user.can_access_page("Vendor Analysis"):
+    st.info("🚧 This page is currently under maintenance and will be available soon.")
+    st.stop()
+
 # Custom CSS
 st.markdown("""
 <style>
